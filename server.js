@@ -1,10 +1,18 @@
 const express = require('express');
-const cors = require('cors');
 const app = express();
 const PORT = process.env.PORT || 10000;
 
-// 모든 요청에 대해 CORS 허용 (크롬 확장 프로그램 접근 허용)
-app.use(cors());
+// cors 패키지 없이 직접 CORS 헤더를 허용하는 미들웨어
+app.use((req, res, next) => {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    
+    if (req.method === 'OPTIONS') {
+        return res.sendStatus(200);
+    }
+    next();
+});
 
 app.get('/get-stream', async (req, res) => {
     const { bjId, bno } = req.query;
@@ -14,7 +22,6 @@ app.get('/get-stream', async (req, res) => {
     }
 
     try {
-        // SOOP 스트림 정보 호출 예시 로직
         const targetUrl = `https://live.sooplive.co.kr/afreeca/get_live_stream.php?action=get_data&bjid=${bjId}&bno=${bno || ''}`;
         
         const response = await fetch(targetUrl, {
