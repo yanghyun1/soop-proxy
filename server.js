@@ -2,15 +2,12 @@ const express = require('express');
 const app = express();
 const PORT = process.env.PORT || 10000;
 
-// CORS 설정
+// CORS 허용
 app.use((req, res, next) => {
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-    
-    if (req.method === 'OPTIONS') {
-        return res.sendStatus(200);
-    }
+    if (req.method === 'OPTIONS') return res.sendStatus(200);
     next();
 });
 
@@ -22,33 +19,23 @@ app.get('/get-stream', async (req, res) => {
     }
 
     try {
-        // SOOP 1080p 원본 스트림 API 호출
-        const formData = new URLSearchParams();
-        formData.append('bid', bjId);
-        formData.append('bno', bno || '');
-        formData.append('type', 'aid');
-        formData.append('pwd', '');
-        formData.append('player_type', 'html5');
-        formData.append('stream_type', 'common');
-        formData.append('quality', 'master'); // 1080p 최고화질 요청
-
-        const response = await fetch('https://live.sooplive.co.kr/afreeca/get_live_stream.php', {
-            method: 'POST',
+        // SOOP HLS 스트림 정보 간소화 요청 (500 에러 방지 처리)
+        const targetUrl = `https://live.sooplive.co.kr/afreeca/get_live_stream.php?action=get_data&bjid=${encodeURIComponent(bjId)}&bno=${encodeURIComponent(bno || '')}&type=aid&player_type=html5`;
+        
+        const response = await fetch(targetUrl, {
             headers: {
-                'Content-Type': 'application/x-www-form-urlencoded',
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                'Origin': 'https://play.sooplive.co.kr',
                 'Referer': 'https://play.sooplive.co.kr/'
-            },
-            body: formData
+            }
         });
         
         const data = await response.json();
         res.json({ success: true, data });
     } catch (error) {
-        res.status(500).json({ success: false, error: error.message });
+        // 에러가 발생해도 500을 뱉지 않고 성공 응답 형태로 넘겨 확장 프로그램이 끊기지 않게 함
+        res.json({ success: false, error: error.message });
     }
 });
 
-app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
-});
+app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
