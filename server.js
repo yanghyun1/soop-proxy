@@ -2,7 +2,7 @@ const express = require('express');
 const app = express();
 const PORT = process.env.PORT || 10000;
 
-// cors 패키지 없이 직접 CORS 헤더를 허용하는 미들웨어
+// CORS 설정
 app.use((req, res, next) => {
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
@@ -22,13 +22,24 @@ app.get('/get-stream', async (req, res) => {
     }
 
     try {
-        const targetUrl = `https://live.sooplive.co.kr/afreeca/get_live_stream.php?action=get_data&bjid=${bjId}&bno=${bno || ''}`;
-        
-        const response = await fetch(targetUrl, {
+        // SOOP 1080p 원본 스트림 API 호출
+        const formData = new URLSearchParams();
+        formData.append('bid', bjId);
+        formData.append('bno', bno || '');
+        formData.append('type', 'aid');
+        formData.append('pwd', '');
+        formData.append('player_type', 'html5');
+        formData.append('stream_type', 'common');
+        formData.append('quality', 'master'); // 1080p 최고화질 요청
+
+        const response = await fetch('https://live.sooplive.co.kr/afreeca/get_live_stream.php', {
+            method: 'POST',
             headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
                 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
                 'Referer': 'https://play.sooplive.co.kr/'
-            }
+            },
+            body: formData
         });
         
         const data = await response.json();
